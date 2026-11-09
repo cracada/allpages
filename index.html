@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" class="light"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>&#6158;&nbsp;&nbsp;&nbsp;&nbsp;&#9679;</title>
+<style>
+  :root {
+    --bg:        #000000;
+    --caption:   #ffffff;
+    --dot:       #9ad2ff;
+    --dot-glow:  0 0 4px #66b3ff,
+                 0 0 14px rgba(47, 127, 224, .55);
+  }
+  :root.light {
+    --bg:        #eef3fa;
+    --caption:   #2c3a4b;
+    --dot:       #2f7fe0;
+    --dot-glow:  0 0 4px rgba(90, 160, 255, .9),
+                 0 0 14px rgba(47, 127, 224, .30);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    transition: background 900ms ease;
+    overflow: hidden;
+  }
+
+  #beam {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  #sky {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    margin: 0;
+    white-space: pre;
+    font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo,
+                 Consolas, "Liberation Mono", monospace;
+    font-weight: 400;
+    letter-spacing: 0;
+    user-select: none;
+    pointer-events: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .star {
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
+    animation: twinkle ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 1;   }
+    50%      { opacity: .18; }
+  }
+  .s1 { color: rgba(255, 255, 255, .35); }
+  .s2 { color: rgba(255, 255, 255, .70); }
+  :root.light .s1 { color: rgba(28, 48, 78, .35); }
+  :root.light .s2 { color: rgba(28, 48, 78, .70); }
+
+  .dot-wrap {
+    position: fixed;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .dot-char {
+    display: block;
+    font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo,
+                 Consolas, "Liberation Mono", monospace;
+    line-height: 1;
+    color: var(--dot);
+    text-shadow: var(--dot-glow);
+    animation: breathe 6s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: .72; transform: scale(.88); }
+    50%      { opacity: 1;   transform: scale(1.12); }
+  }
+
+.caption {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 8vh;
+  z-index: 3;
+  padding: 0 12px;
+  text-align: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(11px, 3.4vw, 15px);
+  line-height: 1.5;
+  letter-spacing: .05em;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--caption);
+  transition: color 900ms ease;
+  pointer-events: none;
+  animation: fadein 6s ease 1.8s both;
+}
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* 只让星点闪烁和蓝点呼吸尊重系统设置，题词渐显保留 */
+  @media (prefers-reduced-motion: reduce) {
+    .star, .dot-char { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="beam"></canvas>
+<pre id="sky"></pre>
+<div id="dot" class="dot-wrap"><span class="dot-char">•</span></div>
+
+<div class="caption">
+  a mote of dust suspended in a sunbeam
+</div>
+
+<script>
+(function () {
+  var pre      = document.getElementById('sky');
+  var beamCv   = document.getElementById('beam');
+  var dotWrap  = document.getElementById('dot');
+  var dotChar  = dotWrap.querySelector('.dot-char');
+  var root     = document.documentElement;
+
+  var MONO = 'ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
+  var BEAM_COLORS = {
+    dark:  { c: [190, 205, 235], a: 0.03 },   /* 极淡冷白，暗夜中若隐若现 */
+    light: { c: [96, 126, 172],  a: 0.20 }
+  };
+
+  var W = 0, H = 0, fs = 15, lineH = 15, charW = 9;
+  var BEAM = null;
+  var currentTheme = null;
+  var resizeTimer;
+
+  function hash(x, y, seed) {
+    var h = Math.imul(x + seed * 1013, 374761393) ^ Math.imul(y + seed * 7919, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  function preferredTheme() {
+    var h = new Date().getHours();
+    return (h >= 6 && h < 18) ? 'light' : 'dark';
+  }
+
+  function setupGeometry() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    fs = W < 720 ? 12 : 15;
+    lineH = fs;
+
+    var mctx = document.createElement('canvas').getContext('2d');
+    mctx.font = fs + 'px ' + MONO;
+    charW = mctx.measureText('M').width || fs * 0.6;
+
+    pre.style.fontSize   = fs + 'px';
+    pre.style.lineHeight = lineH + 'px';
+    dotChar.style.fontSize = fs + 'px';
+  }
+
+  function randomBeam() {
+    var ang   = -0.55 + Math.random() * 0.40;
+    var ax    = W * (0.42 + Math.random() * 0.16);
+    var ay    = H * (0.42 + Math.random() * 0.16);
+    var sigma = W * (0.020 + Math.random() * 0.030);
+    var R     = Math.hypot(W, H) * (0.28 + Math.random() * 0.22);
+    return {
+      ang: ang,
+      ca: Math.cos(ang),
+      sa: Math.sin(ang),
+      ax: ax, ay: ay,
+      sigma: sigma,
+      R: R
+    };
+  }
+
+  function buildStars() {
+    var cols = Math.max(20, Math.floor(W / charW));
+    var rows = Math.max(12, Math.floor(H / lineH));
+    var DENSITY = 0.005;
+
+    var out = '';
+    for (var y = 0; y < rows; y++) {
+      var line = '';
+      for (var x = 0; x < cols; x++) {
+        if (Math.random() < DENSITY) {
+          var cls  = Math.random() < 0.55 ? 's1' : 's2';
+          var ch   = Math.random() < 0.55 ? '.' : '+';
+          var delay = (Math.random() * 5).toFixed(2);
+          var dur   = (2.5 + Math.random() * 3.5).toFixed(2);
+          line += '<span class="star ' + cls + '" style="animation-delay:-' + delay +
+                  's;animation-duration:' + dur + 's">' + ch + '</span>';
+        } else {
+          line += ' ';
+        }
+      }
+      out += line + '\n';
+    }
+    pre.innerHTML = out;
+  }
+
+  function drawBeam() {
+    var theme = currentTheme || 'dark';
+    var col   = BEAM_COLORS[theme];
+    var c     = col.c;
+    var maxA  = col.a;
+
+    var bw = 200;
+    var bh = Math.max(40, Math.round(bw * H / W));
+
+    if (beamCv.width !== bw || beamCv.height !== bh) {
+      beamCv.width  = bw;
+      beamCv.height = bh;
+    }
+
+    var ctx = beamCv.getContext('2d');
+    var img = ctx.createImageData(bw, bh);
+    var data = img.data;
+
+    var ax = BEAM.ax, ay = BEAM.ay;
+    var sigma = BEAM.sigma, R = BEAM.R;
+    var ca = BEAM.ca, sa = BEAM.sa;
+
+    var i = 0;
+    for (var y = 0; y < bh; y++) {
+      for (var x = 0; x < bw; x++, i += 4) {
+        var sx = (x + 0.5) / bw * W;
+        var sy = (y + 0.5) / bh * H;
+
+        var dx = sx - ax, dy = sy - ay;
+        var perp  = -dx * sa + dy * ca;
+        var along =  dx * ca + dy * sa;
+
+        var v = Math.exp(-(perp * perp) / (2 * sigma * sigma)) *
+                Math.exp(-(along * along) / (2 * R * R));
+
+        v *= 0.72 + 0.28 * hash(x, y, 31);
+
+        data[i]     = c[0];
+        data[i + 1] = c[1];
+        data[i + 2] = c[2];
+        data[i + 3] = Math.round(v * maxA * 255);
+      }
+    }
+
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function placeDot() {
+    var t = (Math.random() * 2 - 1) * BEAM.R * 0.32;
+    var p = (Math.random() * 2 - 1) * BEAM.sigma * 0.50;
+
+    var px = BEAM.ax + t * BEAM.ca - p * BEAM.sa;
+    var py = BEAM.ay + t * BEAM.sa + p * BEAM.ca;
+
+    var pad = 18;
+    px = Math.max(pad, Math.min(W - pad, px));
+    py = Math.max(pad, Math.min(H - pad, py));
+
+    dotWrap.style.left = px + 'px';
+    dotWrap.style.top  = py + 'px';
+  }
+
+  function build() {
+    setupGeometry();
+    BEAM = randomBeam();
+    buildStars();
+    placeDot();
+
+    var t = preferredTheme();
+    currentTheme = t;
+    root.classList.toggle('light', t === 'light');
+
+    drawBeam();
+  }
+
+  function applyTheme() {
+    var t = preferredTheme();
+    if (t === currentTheme) return;
+    currentTheme = t;
+    root.classList.toggle('light', t === 'light');
+    drawBeam();
+  }
+
+  build();
+
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(build, 250);
+  });
+
+  setInterval(applyTheme, 60 * 1000);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) applyTheme();
+  });
+})();
+</script>
+</body>
+</html>
+<!--
+preferredTheme中的7和19来改变白天/夜晚时段
+修改DENSITY值（如0.002改为0.01）让星星更密
+修改CSS中:root.light里的--bg色值来改变白天背景色
+修改CSS中:caption的animation值改变字的显示效果 fadein 8s ease 1.6s both;
+修改BEAM_COLORS定义光带
+  dark:  { c: [190, 205, 235], a: 0.03 },   /* 极淡冷白，暗夜中若隐若现 */
+  light: { c: [96, 126, 172],  a: 0.20 }    /* 保持不变 */
+-->
