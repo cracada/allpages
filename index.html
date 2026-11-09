@@ -1,0 +1,359 @@
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Tvbox</title>
+<base target="_blank">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+<script>
+/* 尽早定主题：优先 localStorage，其次系统；避免首屏白闪 */
+(function () {
+  try {
+    var saved = localStorage.getItem('theme');
+    var isDark = saved === 'dark' ||
+      (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
+<style type="text/css">
+/* ========== 主题变量 ========== */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6c757d;
+  --line: #e5e5e5;
+  --primary: #0d6efd;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #0dcaf0;
+  --success: #198754;
+  --on-color: #ffffff;
+  --on-warning: #212529;
+  --hover-overlay: rgba(0, 0, 0, .10);
+  --tip-bg: #000;
+  --tip-fg: #fff;
+  --tip-border: #666;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121212;
+  --fg: #e8e8e8;
+  --muted: #9aa0a6;
+  --line: #2a2a2a;
+  --primary: #3b82f6;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #22d3ee;
+  --success: #22c55e;
+  --on-color: #ffffff;
+  --on-warning: #111111;
+  --hover-overlay: rgba(255, 255, 255, .14);
+  --tip-bg: #000;
+  --tip-fg: #fff;
+  --tip-border: #666;
+}
+
+/* ========== 基础（对齐 Bootstrap reboot + 原页面 body 限宽） ========== */
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 12px 40px;          /* 左右 12px，模拟 Bootstrap .container 的 gutter */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 1rem;
+  color: var(--fg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 恢复 Bootstrap reboot 的 ul 默认缩进（原页面没有覆盖它） */
+ul {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+li { list-style: none; margin: 1.2rem auto; }
+h4 {
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin-top: 0;
+  margin-bottom: .5rem;
+}
+a { text-decoration: none; }
+
+/* ========== 分区标题（原样式，只把颜色换成变量） ========== */
+.liul {
+  border-bottom: 1px solid var(--line);
+  margin-top: 1.8rem;
+}
+
+/* ========== 顶部按钮区 ========== */
+.float-end { float: right; }
+.me-4 { margin-right: 1.5rem; }
+
+/* ========== 按钮基础（对齐 Bootstrap 5 .btn） ========== */
+.btn {
+  display: inline-block;
+  padding: .375rem .75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: .375rem;
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+.btn:hover { box-shadow: inset 0 0 0 100px var(--hover-overlay); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.btn:disabled { opacity: .6; cursor: default; }
+
+/* 尺寸与间距工具类（对应原 Bootstrap 类名，值同 Bootstrap 5） */
+.btn-sm { padding: .25rem .5rem; font-size: .875rem; }
+.px-1 { padding-left: .25rem; padding-right: .25rem; }
+.px-3 { padding-left: 1rem; padding-right: 1rem; }
+.px-4 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.ms-3 { margin-left: 1rem; }
+.ms-4 { margin-left: 1.5rem; }
+.mx-3 { margin-left: 1rem; margin-right: 1rem; }
+.opacity-75 { opacity: .75; }
+.opacity-75:hover { opacity: .85; }
+.text-primary { color: var(--primary); }
+
+/* 实心按钮 */
+.btn-primary { background-color: var(--primary); color: var(--on-color); border-color: var(--primary); }
+.btn-danger  { background-color: var(--danger);  color: var(--on-color); border-color: var(--danger); }
+.btn-warning { background-color: var(--warning); color: var(--on-warning); border-color: var(--warning); }
+.btn-info    { background-color: var(--info);    color: var(--on-warning); border-color: var(--info); }
+.btn-success { background-color: var(--success); color: var(--on-color); border-color: var(--success); }
+.btn-light   { background-color: transparent; color: var(--primary); border-color: var(--line); }
+.btn-light:hover { box-shadow: none; background-color: var(--line); }
+
+/* 描边按钮 */
+.btn-outline-primary { color: var(--primary); border-color: var(--primary); }
+.btn-outline-primary:hover { background-color: var(--primary); color: var(--on-color); box-shadow: none; }
+
+.btn-outline-warning { color: var(--warning); border-color: var(--warning); }
+.btn-outline-warning:hover { background-color: var(--warning); color: var(--on-warning); box-shadow: none; }
+
+.btn-outline-success { color: var(--success); border-color: var(--success); }
+.btn-outline-success:hover { background-color: var(--success); color: var(--on-color); box-shadow: none; }
+
+/* ========== 提示气泡 ========== */
+.tip {
+  position: absolute;
+  background-color: var(--tip-bg);
+  color: var(--tip-fg);
+  border: 1px solid var(--tip-border);
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: .8125rem;
+  max-width: calc(100vw - 24px);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  z-index: 100;
+  pointer-events: none;
+  animation: tipIn .15s ease-out;
+}
+@keyframes tipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 注意：这里不再有 max-width:420px 缩小按钮/h4 的规则 */
+</style>
+</head>
+<body>
+<div class="container">
+
+<ul>
+<div class="me-4 float-end">
+  <a class="btn btn-sm btn-light text-primary" href="https://github.com/youhunwl/TVAPP" title="更多影视APP">更多</a>
+  <button class="btn btn-sm btn-light text-primary" id="themeToggle" type="button" title="切换主题">🌙</button>
+</div>
+<li class="liul"><h4>仓库</h4></li>
+<li>
+<button class="btn btn-primary px-3" onclick="cp('https://tv.221220.xyz/box/','zlck')" id="zlck" title="点击复制仓库地址">主力多仓</button>
+<button class="btn btn-outline-primary px-3 ms-4" onclick="cp('http://xmbjm.fh4u.org/dc.txt','sgdc')" id="sgdc" title="点击复制仓库地址">拾光多仓</button>
+</li>
+<li>
+<button class="btn btn-primary opacity-75 px-3" onclick="cp('https://www.iyouhun.com/tv/dc','yhdc')" id="yhdc" title="点击复制仓库地址">游魂多仓</button>
+<button class="btn btn-outline-primary px-3 ms-4" onclick="cp('https://www.iyouhun.com/tv/yh','yhdcb')" id="yhdcb" title="点击复制仓库地址">游魂备仓</button>
+</li>
+<li>
+<button class="btn btn-primary opacity-75 px-3" onclick="cp('http://xhztv.top/dc/','xhz')" id="xhz" title="点击复制仓库地址">小盒子多仓</button>
+<button class="btn btn-outline-primary px-3 ms-3" onclick="cp('http://xhztv.top/DC.txt','xhzb')" id="xhzb" title="点击复制仓库地址">小盒子备仓</button>
+</li>
+
+<li class="liul"><h4>推送</h4></li>
+<li>
+<a class="btn btn-danger opacity-75 px-4" href="http://g.221220.xyz/addons/tvp/?38">电视</a>
+<a class="btn btn-warning opacity-75 mx-3 px-4" href="http://g.221220.xyz/addons/tvp/?39">投影</a>
+<a class="btn btn-info opacity-75 px-4" href="http://g.221220.xyz/addons/tvp/?37">盒子</a>
+</li>
+
+<li class="liul"><h4>播放器</h4>
+</li>
+<li>
+<a class="btn btn-success" target="_blank" href='https://github.com/FongMi/Release/releases/download/5.8.7/leanback-armeabi_v7a.apk'>FongMi TV版</a>
+<a class="btn btn-outline-success mx-3" target="_blank" href='https://github.com/FongMi/Release/releases/download/5.8.7/mobile-arm64_v8a.apk' title='64位'>手机版</a>
+<!--a class="btn btn-outline-success opacity-75 px-1" target="_blank" href='https://raw.githubusercontent.com/FongMi/Release/main/apk/kitkat/leanback.apk' title="For Android 4.x">安卓4.x</a-->
+</li>
+<!--
+电视版
+32位 :fmtv32 fmtv64 fmtv32bak
+手机版
+64位：fmsj64 fmsj32 fmsj64bak
+-->
+<li>
+<a class="btn btn-warning px-3" target="_blank" href='https://raw.githubusercontent.com/cracada/soft/main/apk/ysc-tv.apk' title='6.1.9'>影视仓TV版</a>
+<a class="btn btn-outline-warning mx-3" target="_blank" href='https://raw.githubusercontent.com/cracada/soft/main/apk/ysc-mobile.apk'  title='v3.3.0'>手机版</a>
+<a class="btn btn-outline-warning opacity-75 px-1" target="_blank" href='https://raw.githubusercontent.com/cracada/soft/main/apk/ysc-android4.apk' title="v3.0.36 for Android 4.x">安卓4.x</a>
+</li>
+
+</ul>
+</div>
+
+<script>
+/* ========== 复制文本：优先 Clipboard API，回退 execCommand ========== */
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).then(
+      function () { return true; },
+      function () { return fallbackCopy(text); }
+    );
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+
+/* 回退方案（非安全上下文或旧浏览器） */
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length); // iOS 需要
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+/* ========== 主复制入口（供 onclick 调用） ========== */
+function cp(txt, sel) {
+  var el = document.getElementById(sel);
+  copyText(txt).then(function (ok) {
+    setTips(sel, ok ? '已复制' : '复制失败');
+
+    if (ok && el && el.tagName === 'BUTTON') {
+      var label = el.textContent;
+      el.textContent = '已复制';
+      el.disabled = true;
+      setTimeout(function () {
+        el.textContent = label;
+        el.disabled = false;
+      }, 1200);
+    }
+  });
+}
+
+/* ========== 提示气泡 ========== */
+var currentTip = null;
+
+function setTips(id, title) {
+  if (currentTip && currentTip.parentNode) {
+    currentTip.parentNode.removeChild(currentTip);
+  }
+
+  var el = document.getElementById(id);
+  if (!el) return;
+
+  var tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.textContent = title;
+  document.body.appendChild(tip);
+  currentTip = tip;
+
+  var rect = el.getBoundingClientRect();
+  var tipRect = tip.getBoundingClientRect();
+  var left = rect.left + window.scrollX + (rect.width - tipRect.width) / 2;
+  var top = rect.top + window.scrollY - tipRect.height - 10;
+
+  var minLeft = window.scrollX + 8;
+  var maxLeft = window.scrollX + window.innerWidth - tipRect.width - 8;
+  if (left < minLeft) left = minLeft;
+  if (left > maxLeft) left = maxLeft;
+
+  if (top < window.scrollY + 8) {
+    top = rect.bottom + window.scrollY + 10;
+  }
+
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+
+  setTimeout(function () {
+    if (tip.parentNode) tip.parentNode.removeChild(tip);
+    if (currentTip === tip) currentTip = null;
+  }, 1500);
+}
+
+/* ========== 工具函数（保留外部可能调用的钩子） ========== */
+function op(url) { window.open(url); }
+function dl(url) { window.open("https://tv.221220.xyz/dl/?" + Date.now() + url); }
+
+/* ========== 主题切换 ========== */
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+
+  function isDark() {
+    return root.getAttribute('data-theme') === 'dark';
+  }
+  function sync() {
+    btn.textContent = isDark() ? '☀️' : '🌙';
+    btn.title = isDark() ? '切换为亮色' : '切换为暗色';
+  }
+
+  btn.addEventListener('click', function () {
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+    sync();
+  });
+
+  // 用户没手动选过时，跟随系统主题实时变化
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var onChange = function (e) {
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (err) {}
+    if (saved !== 'dark' && saved !== 'light') {
+      root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      sync();
+    }
+  };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+
+  sync();
+})();
+</script>
+</body>
+</html>
+<!--commit tag 1109-->
